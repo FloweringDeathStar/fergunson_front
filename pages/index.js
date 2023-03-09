@@ -57,7 +57,7 @@ export default function Home() {
 
                 const data_temp_t = tf.tensor(data_temp,[data_temp.length,1], 'float32')
                 const  thend = tf.scalar(15.1)
-                const theco = tf.scalar(11.2)
+                const theco = tf.scalar(10.2)
                 const ka1 = 0.1
                 const ka2 = 0.001
                 const kd1 = 0.001
@@ -72,7 +72,6 @@ export default function Home() {
                 const data_end = day_end.sub(edb)
                 const data_edb_drop = data_edb.dataSync()
                 const data_end_drop = data_end.dataSync()
-
 
                 const data_temp_t_reshape = data_temp_t.reshape([data_temp_t.shape[0]/24,24])
                 const data_temp_t_reshape_min = data_temp_t_reshape.min(1)
@@ -113,8 +112,9 @@ export default function Home() {
                     }else{
                         hc=0
                     }
-                        let lte = data_LTE[index]+hh+hc
-                        data_LTE.push(lte)
+
+                    let lte = data_LTE[index]+hh+hc
+                    data_LTE.push(lte)
                 })
 
                 data_temp_t_after_threshold_array.forEach((element, index) => {
@@ -158,7 +158,6 @@ export default function Home() {
                 setData(data_array)
             }
         }
-
         fileInput.click()
         console.log(data)
 
@@ -177,10 +176,15 @@ export default function Home() {
             .style("margin-top", "20px")
             .style("margin-bottom", "20px")
             .style("overflow", "visible")
+        svg.append("text")
+            .attr("x", w/2)
+            .attr("y", h-10)
+            .style("text-anchor", "middle")
+            .text("Día")
 
         const xScale = d3.scaleLinear()
             .domain([0, data.length-1])
-            .range([0, w])
+            .range([20, w])
 
         const yScale = d3.scaleLinear()
             .domain([d3.min(data, d => d[2]), d3.max(data, d => d[2])])
@@ -245,6 +249,14 @@ export default function Home() {
         svg2.append("g")
             .call(yAxis2)
             .attr("transform", `translate(0, 0)`)
+        svg2.append("text")
+            .attr("x", w/2)
+            .attr("y", h-10)
+            .style("text-anchor", "middle")
+            .text("Día")
+
+
+
     
         console.log(data)
     }, [data])
@@ -266,28 +278,53 @@ export default function Home() {
                     <p>
                         Modelo para el calculo de frio acumulado en frutales caducifolios que utiliza el grado de  aclimatación al frío como indicador. Se utiliza el modelo publicado por <a href='https://www.researchgate.net/publication/259842306_Modeling_Dormant_Bud_Cold_Hardiness_and_Budbreak_in_Twenty-Three_Vitis_Genotypes_Reveals_Variation_by_Region_of_Origin'>
                         Ferguson y col (2013)</a> y modificado por <a href='https://www.researchgate.net/publication/341190544_Testing_the_Ferguson_model_for_the_cold-hardiness_of_dormant_grapevine_buds_in_a_temperate_and_subtropical_valley_of_Chile'>
-                        Rubio y Pérez (2020)</a>
+                        Rubio y Pérez (2020) </a> para climas templados.
                     </p>
                     <p>
-                        El modelo se ha ajustado a los datos obtenidos para <span className='specie'>Vitis vinifera</span>, variedad <b>Thompson Seedless</b>
+                        El modelo se ha ajustado a los datos obtenidos para<b> <span className='specie'>Vitis vinifera </span>(cv. Thompson Seedless)</b>.
                     </p>
                     <h2>LTE Max</h2>
                     <p>
-                        El valor de LTE Max es el máximo valor de aclimatación de las yemas al frio, el cual depende de las temperaturas a las cuales han sido expuestas las yemas y la variedad del frutal. Por lo tanto,
-                        La LTE Max es el indicador de la cantidad de frio acumulado que ha recibido el frutal.
+
+                        El valor de LTE Max es el máximo valor de aclimatación al frio de las yemas, el cual depende de las temperaturas a las cuales han sido expuestas las yemas y la variedad del frutal. Por lo tanto,
+                        La LTE Max es el indicador de la cantidad de frio acumulado que ha recibido el frutal al finalizar el periodo de receso invernal.
                     </p>
                     <p>
-                        Estudios previos muestran que, en el caso de <span className='specie'>Vitis vinifera</span>, variedad <b>Thompson Seedless</b>, valores de LTE max menores a -16°C son suficientes para asegurar
-                        la brotación uniforme de las yemas.
+                        Estudios previos muestran que, en el caso de <span className='specie'>Vitis vinifera</span>, variedad <b>Thompson Seedless</b>, valores de LTE max menores a -17°C son suficientes para asegurar
+                        la brotación uniforme de las yemas. Sin embargo, faltan datos para determinar cual es el valor crítico de LTE Max para la brotación de <b>Thompson Seedless</b>.
                     </p>
                     <h2>Fecha de brotación</h2>
                     <p>
-                        (en desarrollo)
+                        (En desarrollo.)
                     </p>
                     <p>
                         Según <a href='https://www.researchgate.net/publication/368887885_Development_of_a_new_cold_hardiness_prediction_model_for_grapevine_using_phased_integration_of_acclimation_and_deacclimation_responses'> Kovaleski y col (2023), </a>
-                        la brotación se produce una vez que las yemas se desaclimatan y la LTE alcanza valores de entre -10 y -9°C. En este momento no se cuenta con suficiente información en <span className='specie'>Vitis vinifera</span>, variedad <b>Thompson Seedless </b>
+                        la brotación se produce una vez que las yemas se desaclimatan y la LTE alcanza valores de entre -10 y -9°C. En este momento no se cuenta con suficiente información en <b>Thompson Seedless </b>
                         para determinar cual es la LTE critica para la brotación y así poder estimar la fecha de brotación. 
+                    </p>
+
+                    <h2>Subir archivos</h2>
+                    <p>
+                        Para subir los archivos, debe seleccionar el archivo de temperatura por hora en formato csv.
+                    </p>
+                    <p>
+                        Evitar subir archivos con ultima linea vacia.
+                    </p>
+                    <p>
+                        El archivo debe contener las siguientes columnas:Tiempo y Temperatura del Aire ºC.
+                    </p>
+                    <p>
+                        El tiempo debe estar en formato de fecha y hora (DD/MM/YYYY HH:MM ó DD-MM-YYYY HH:MM).
+                    </p>
+                    <p>
+                    EJEMPLO:
+                    </p>
+                    <p className='ejemplo_csv'>
+                        Tiempo,Temperatura del Aire ºC<br/>
+                        01/01/2021 00:00,10.0<br/>
+                        01/01/2021 01:00,9.0<br/>
+                        01/01/2021 02:00,8.3<br/>
+                        01/01/2021 03:00,7.6<br/>
                     </p>
 
                     <div className={styles.upLoadFileButton}>
@@ -303,21 +340,20 @@ export default function Home() {
             }
             {dataStatus === 'd3' &&
                 <main className={styles.main}>
-                    <h2>Temperaturas Promedio</h2>
+                    <h2>Temperaturas Promedio Diarias (ºC)</h2>
                     <svg ref={svgRef}>
                     </svg>
-                    <h2>LTE</h2>
+                    <h2 className='aclimation'>LTE (ºC)</h2>
                     <svg ref ={svgRef2}>
                     </svg>
                     <h2 className='aclimation'>Maximo de aclimatación</h2>
-                    <p>El maximo de aclimatación alcanzado en la temporada es: {maxAclimatacion}</p>
-
+                    <p>El maximo de aclimatación alcanzado en la temporada es: <b>{maxAclimatacion}</b></p>
                 </main>
             }
         </div>
         <style jsx>{`
             .upLoadFileButton {
-
+                top-margin: 20px;
                 display: flex;
                 justify-content: center;
                 align-items: center;
@@ -329,13 +365,12 @@ export default function Home() {
                 cursor: pointer;
             }
             .upLoadFileButton:hover {
-
                 background-color: #e0e0e0;
             }
             .upLoadFileButton:active {
             }
             .aclimation {
-                margin-top: 20px;
+                margin-top: 40px;
             }
             p{
                 margin: 0;
@@ -343,10 +378,18 @@ export default function Home() {
                 top-margin: 0;
                 bottom-margin: 0;
                 text-align: left;
-
             }
             .specie {
                 font-style: italic;
+            }
+            .ejemplo_csv {
+                font-family: monospace;
+                font-size: 12px;
+                margin: 0;
+                padding: 0;
+                top-margin: 0;
+                bottom-margin: 0;
+                text-align: left;
             }
         `}</style>
         </>
