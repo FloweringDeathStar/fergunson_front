@@ -9,11 +9,11 @@ export default function Home() {
 
     const [dataStatus, setDataStatus] = useState('unloaded')
     const [data, setData] = useState([])
-    const [julian, setJulian] = useState([]) 
-
+    const [maxAclimatacion, setMaxAclimatacion] = useState(0)
 
     const handleUpload = async () => {
         let  data_array =[]
+        let maxAclimatacion_ = 0
         const fileInput = document.createElement('input')
         fileInput.type = 'file'
         fileInput.accept = '.csv'
@@ -22,20 +22,19 @@ export default function Home() {
             const reader = new FileReader()
             reader.readAsText(file)
             reader.onload = async (e) => {
+
                 const text = (e.target.result)
-                await setDataStatus('loaded')
+                setDataStatus('loaded')
 
                 const data = text.split('\r\n').map((row) => {
                     let line =row.split(',')
                     line[0] = line[0].replace(/-/g, '/').split(' ')
                     line[0][0] = line[0][0].split('/')
-                    line[0][0] = line[0][0].reverse()
-                    line[0][2] = line[0][0][1]*30+line[0][0][2]*1
+                    line[0][2] = line[0][0][1]*30+line[0][0][0]*1
                     line[0][0] = line[0][0].join('-')
                     line[0][1] = line[0][1].split(':')
                     return line
                 })
-                //eliminate the first row
                 const header_data = data.shift()
 
                 const data_day = data.map((row) => {
@@ -45,7 +44,6 @@ export default function Home() {
                     return row[0][0]
                 })
 
-                
                 const data_temp = data.map((row) => {
                     let x = +row[1]
                     x = x.toFixed(1)
@@ -54,6 +52,9 @@ export default function Home() {
 
                 const data_day_t = tf.tensor(data_day,[data_day.length,1], 'int32')
                 const data_day_t_unique = tf.unique(data_day_t,0)
+                const data_day_normal_t = tf.tensor(data_day_normal,[data_day.length,1], 'string' )
+                const data_day_normal_t_unique = tf.unique(data_day_normal_t, 0)
+
                 const data_temp_t = tf.tensor(data_temp,[data_temp.length,1], 'float32')
                 const  thend = tf.scalar(15.1)
                 const theco = tf.scalar(11.2)
@@ -83,8 +84,6 @@ export default function Home() {
                 const drop_in = data_edb_drop[0]+data_end_drop[0]
 
                 const [data_temp_t_average_reshape, data_temp_t_average_drop] = tf.split(data_temp_t_average,[drop_in,drop],0)
-              
-
                 const [data_temp_t_before, data_temp_t_after] = tf.split(data_temp_t_average_reshape,[data_edb_drop[0],data_end_drop[0]],0)
 
                 const data_temp_t_before_threshold = data_temp_t_before.sub(thend)
@@ -139,31 +138,36 @@ export default function Home() {
 
                     let lte = data_LTE[i]+hh+hc
                     data_LTE.push(lte)
+                    maxAclimatacion_ = Math.min(...data_LTE).toFixed(1)
+                    setMaxAclimatacion(maxAclimatacion_)
                 // data_temp_t_average.print()
                 })
                 const data_temp_average = data_temp_t_average.dataSync()
 
                 const data_day_array =data_day_t_unique.values.dataSync()
+                const data_day_normal_array =data_day_normal_t_unique.values.dataSync()
+
+
                 let data_array =[]
                  data_day_array.forEach((element, index) => {
                     let array=[]
-                    array.push(element, +data_temp_average[index].toFixed(2), +data_LTE[index].toFixed(2))
+                    array.push(element, data_day_normal_array[index],+data_temp_average[index].toFixed(2), +data_LTE[index].toFixed(2))
                     data_array.push(array)
                 })
                 setDataStatus("d3")
                 setData(data_array)
-
-             
             }
         }
+
         fileInput.click()
         console.log(data)
 
     }
     const svgRef = useRef()
     const svgRef2 = useRef()
+
     useEffect(() => {
-        const w =400
+        const w =800
         const h = 200
         const svg = d3.select(svgRef.current)
             .attr("width", w)
@@ -179,23 +183,24 @@ export default function Home() {
             .range([0, w])
 
         const yScale = d3.scaleLinear()
-            .domain([d3.min(data, d => d[1]), d3.max(data, d => d[1])])
+            .domain([d3.min(data, d => d[2]), d3.max(data, d => d[2])])
             .range([h, 0])
         const generateScaledLine = d3.line()
             .x((d, i) => xScale(i))
-            .y(d => yScale(d[1]))
-            .curve(d3.curveMonotoneX)
-        
+            .y(d => yScale(d[2]))
+            .curve(d3.curveStep)
+
         svg.selectAll(".line")
             .data([data])
             .join("path")
             .attr("d", d=>generateScaledLine(d))
             .attr("fill", "none")
             .attr("stroke", "blue")
+            .style("stroke-witdth", 3)
         
         const xAxis = d3.axisBottom(xScale)
             .ticks(10)
-            .tickFormat(i => data[i][0])
+            .tickFormat(i => data[i][1])
         
         const yAxis = d3.axisLeft(yScale)
             .ticks(10)
@@ -217,12 +222,12 @@ export default function Home() {
             .style("overflow", "visible")
 
         const yScale2 = d3.scaleLinear()
-            .domain([d3.min(data, d => d[2]), d3.max(data, d => d[2])])
+            .domain([-20, -5])
             .range([h, 0])
 
         const generateScaledLine2 = d3.line()
             .x((d, i) => xScale(i))
-            .y(d => yScale2(d[2]))
+            .y(d => yScale2(d[3]))
             .curve(d3.curveMonotoneX)
 
         svg2.selectAll(".line")
@@ -231,22 +236,19 @@ export default function Home() {
             .attr("d", d=>generateScaledLine2(d))
             .attr("fill", "none")
             .attr("stroke", "blue")
-        const yAxis2 = d3.axisLeft(yScale)
-            .ticks(10)
+            .style("stroke-width", 3)
+        const yAxis2 = d3.axisLeft(yScale2)
+            .ticks(5)
         svg2.append("g")
             .call(xAxis)
             .attr("transform", `translate(0, ${h})`)
         svg2.append("g")
             .call(yAxis2)
             .attr("transform", `translate(0, 0)`)
-
     
         console.log(data)
     }, [data])
 
-
-
-  
     return (
         <>
         <div className={styles.container}>
@@ -256,10 +258,37 @@ export default function Home() {
                 <link rel="icon" href="/favicon.ico" />
             </Head>
             <h1 className={styles.title}>
-                        Carculador de Frio Acumulado
+                        Calculador de Frio Acumulado
             </h1>
             {dataStatus === 'unloaded' &&
                 <main className={styles.main}>
+                    <h2>Descripción</h2>
+                    <p>
+                        Modelo para el calculo de frio acumulado en frutales caducifolios que utiliza el grado de  aclimatación al frío como indicador. Se utiliza el modelo publicado por <a href='https://www.researchgate.net/publication/259842306_Modeling_Dormant_Bud_Cold_Hardiness_and_Budbreak_in_Twenty-Three_Vitis_Genotypes_Reveals_Variation_by_Region_of_Origin'>
+                        Ferguson y col (2013)</a> y modificado por <a href='https://www.researchgate.net/publication/341190544_Testing_the_Ferguson_model_for_the_cold-hardiness_of_dormant_grapevine_buds_in_a_temperate_and_subtropical_valley_of_Chile'>
+                        Rubio y Pérez (2020)</a>
+                    </p>
+                    <p>
+                        El modelo se ha ajustado a los datos obtenidos para <span className='specie'>Vitis vinifera</span>, variedad <b>Thompson Seedless</b>
+                    </p>
+                    <h2>LTE Max</h2>
+                    <p>
+                        El valor de LTE Max es el máximo valor de aclimatación de las yemas al frio, el cual depende de las temperaturas a las cuales han sido expuestas las yemas y la variedad del frutal. Por lo tanto,
+                        La LTE Max es el indicador de la cantidad de frio acumulado que ha recibido el frutal.
+                    </p>
+                    <p>
+                        Estudios previos muestran que, en el caso de <span className='specie'>Vitis vinifera</span>, variedad <b>Thompson Seedless</b>, valores de LTE max menores a -16°C son suficientes para asegurar
+                        la brotación uniforme de las yemas.
+                    </p>
+                    <h2>Fecha de brotación</h2>
+                    <p>
+                        (en desarrollo)
+                    </p>
+                    <p>
+                        Según <a href='https://www.researchgate.net/publication/368887885_Development_of_a_new_cold_hardiness_prediction_model_for_grapevine_using_phased_integration_of_acclimation_and_deacclimation_responses'> Kovaleski y col (2023), </a>
+                        la brotación se produce una vez que las yemas se desaclimatan y la LTE alcanza valores de entre -10 y -9°C. En este momento no se cuenta con suficiente información en <span className='specie'>Vitis vinifera</span>, variedad <b>Thompson Seedless </b>
+                        para determinar cual es la LTE critica para la brotación y así poder estimar la fecha de brotación. 
+                    </p>
 
                     <div className={styles.upLoadFileButton}>
                         <button onClick ={handleUpload}>subir archivos</button>
@@ -280,6 +309,9 @@ export default function Home() {
                     <h2>LTE</h2>
                     <svg ref ={svgRef2}>
                     </svg>
+                    <h2 className='aclimation'>Maximo de aclimatación</h2>
+                    <p>El maximo de aclimatación alcanzado en la temporada es: {maxAclimatacion}</p>
+
                 </main>
             }
         </div>
@@ -301,6 +333,20 @@ export default function Home() {
                 background-color: #e0e0e0;
             }
             .upLoadFileButton:active {
+            }
+            .aclimation {
+                margin-top: 20px;
+            }
+            p{
+                margin: 0;
+                padding: 0;
+                top-margin: 0;
+                bottom-margin: 0;
+                text-align: left;
+
+            }
+            .specie {
+                font-style: italic;
             }
         `}</style>
         </>
